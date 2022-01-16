@@ -23,11 +23,6 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         object_path = os.path.join(self.root_dir, "object_labels", self.objects[idx])
 
         img = Image.open(img_path).convert("RGB")
-        #img = np.asarray(img)
-        #print("1: ", img.shape)
-        #img = np.rollaxis(img, 2, 0)
-        #print("2: ", img.shape)
-        #img = torch.as_tensor(img, dtype=torch.uint8)
 
         mask_full_one_channel = np.loadtxt(mask_path).astype(np.uint8)
         mask_full = np.zeros((10, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(bool)
@@ -39,10 +34,7 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
 
         for obj in objects:
             class_id, x1, y1, x2, y2 = obj
-            mask = np.zeros(mask_full_one_channel.shape).astype(np.uint8)
-            mask[y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2]
-            mask[mask != 0] = 1
-            mask_full[class_id, y1:y2, x1:x2] = mask[y1:y2, x1:x2]
+            mask_full[class_id, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
 
             class_ids.append(class_id)
             bboxes.append([x1, y1, x2, y2])
