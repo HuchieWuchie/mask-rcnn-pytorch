@@ -32,8 +32,8 @@ def get_model_instance_segmentation(num_classes):
 def get_transform(train):
     transforms = []
     transforms.append(T.ToTensor())
-    if train:
-        transforms.append(T.RandomHorizontalFlip(0.5))
+    transforms.append(T.RandomHorizontalFlip(0.5))
+    
     return T.Compose(transforms)
 
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
@@ -62,7 +62,8 @@ def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # our dataset has 
-    num_classes = 10
+    num_classes = 11
+
     # use our dataset and defined transformations
     dataset = InstanceSegmentationDataSet(root_dir = 'dataset/train_and_val', transforms = get_transform(train=True))
     dataset_test = InstanceSegmentationDataSet(root_dir = 'dataset/test', transforms = get_transform(train=False))
@@ -80,7 +81,7 @@ def main():
     model = get_model_instance_segmentation(num_classes)
 
     # move model to the right device
-    model.to(device)
+    model.to(device)    
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]

@@ -39,24 +39,21 @@ OBJ_CLASSES = ('__background__', 'bowl', 'tvm', 'pan', 'hammer', 'knife',
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # our dataset has 
-num_classes = 10
+num_classes = 11
 
 # get the model using our helper function
 #model = get_model_instance_segmentation(num_classes)
-model = torch.load("model.pth")
+model = torch.load("2.pth")
 
 # move model to the right device
 model.to(device)
 
-# let's train it for 10 epochs
-num_epochs = 10
-
 model.eval()
 
-#img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00022910.jpg"
-#img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/00_00000116.jpg"
+img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00022910.jpg"
+img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/00_00000116.jpg"
 #img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00000876.jpg"
-img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00037745.jpg"
+#img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00037745.jpg"
 #img_path = "/workspaces/maskrcnn-pytorch/rgb.png"
 #img_path = "/workspaces/maskrcnn-pytorch/custom.png"
 img = Image.open(img_path).convert("RGB")
@@ -68,28 +65,29 @@ predictions = model(x)[0]
 boxes, labels, scores, masks = predictions['boxes'], predictions['labels'], predictions['scores'], predictions['masks']
 
 
-idx = scores > 0.1
-boxes = boxes[idx]
+idx = scores > 0.5
+boxes = boxes[idx].cpu().detach().numpy()
 labels = labels[idx] 
 scores = scores[idx]
 masks = masks[idx].cpu().detach().numpy()
 print(scores)
 print(labels)
+colors = [(0,0,205), (34,139,34), (192,192,128), (165, 42, 42), (128, 64, 128),
+                (204, 102, 0), (184, 134, 11), (0, 153, 153), (0, 134, 141), (184, 0, 141), (184, 0, 255)]
 
-
-for box, label in zip(boxes, labels):
+for box, label, mask in zip(boxes, labels, masks):
+    x1, y1, x2, y2 = int(box[0]), int(box[1]), int(box[2]), int(box[3])
     ps = (box[0], box[1])
     pe = (box[2], box[3])
     color = (0, 0, 255)
     thickness = 2
     img_vis = cv2.rectangle(img_vis, ps, pe, color, thickness)
+    img_vis[mask[0] > 0.01] = colors[label]
+    #print(mask.shape)
+    #print(mask[0, y1:y2, x1:x2])
 
     img_vis = cv2.putText(img_vis, str(OBJ_CLASSES[label]), (box[0], box[3]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3, 2)
-
-colors = [(0,0,205), (34,139,34), (192,192,128), (165, 42, 42), (128, 64, 128),
-                (204, 102, 0), (184, 134, 11), (0, 153, 153), (0, 134, 141), (184, 0, 141)]
-for label, mask in zip(labels, masks):
-    img_vis[mask[0] > 0.01] = colors[label]
+    
 
 cv2.imwrite("test.jpg", img_vis)
 
