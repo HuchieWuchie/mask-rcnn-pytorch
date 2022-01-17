@@ -25,7 +25,7 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         img = Image.open(img_path).convert("RGB")
 
         mask_full_one_channel = np.loadtxt(mask_path).astype(np.uint8)
-        mask_full = np.zeros((11, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(bool)
+        mask_full = np.zeros((11, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(float)
         objects = np.loadtxt(object_path).astype(np.int32)
         objects = np.reshape(objects, (-1, 5))
 
@@ -35,6 +35,7 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         for obj in objects:
             class_id, x1, y1, x2, y2 = obj
             class_id = class_id + 1
+            print(class_id, mask_full.shape)
             mask_full[class_id, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
 
             class_ids.append(class_id)
@@ -43,7 +44,7 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         # convert everything into a torch.Tensor
         bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
         labels = torch.as_tensor(class_ids, dtype=torch.int64)
-        masks = torch.as_tensor(mask_full, dtype=torch.uint8)
+        masks = torch.as_tensor(mask_full, dtype=torch.float32)
         image_id = torch.tensor([idx])
         area = (bboxes[:, 3] - bboxes[:, 1]) * (bboxes[:, 2] - bboxes[:,0])
 
