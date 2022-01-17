@@ -47,13 +47,16 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         for obj in objects:
             class_id, x1, y1, x2, y2 = obj
             x1, y1, x2, y2 = int(x1 * w_scale), int(y1 * h_scale), int(x2 * w_scale), int(y2 * h_scale)
+            print(img.size, mask_full_one_channel.shape, x1, y1, x2, y2)
+            if x1 >= 1023 or y1 >= 1023 or x2 >= 1023 or y2 >= 1023:
+                print("too big: ", x1, y1, x2, y2)
             class_id = class_id + 1
             mask_full[class_id, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
 
             class_ids.append(class_id)
             bboxes.append([x1, y1, x2, y2])
         mask_full = mask_full * 255
-        """
+        
         p = 0
         for m in mask_full:
             mc = m.copy()
