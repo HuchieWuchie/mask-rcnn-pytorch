@@ -1,6 +1,7 @@
 import math
 import sys
 import time
+import numpy as np
 
 import torch
 import torchvision.models.detection.mask_rcnn
@@ -73,43 +74,37 @@ def _get_iou_types(model):
 
 
 @torch.inference_mode()
-def evaluate(model, data_loader, device):
-    n_threads = torch.get_num_threads()
+def evaluate(model, data_loader, device, print_freq=100):
+    #n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
-    torch.set_num_threads(1)
-    cpu_device = torch.device("cpu")
-    model.eval()
+    model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = "Test:"
 
-    coco = get_coco_api_from_dataset(data_loader.dataset)
-    iou_types = _get_iou_types(model)
-    coco_evaluator = CocoEvaluator(coco, iou_types)
+    losses = []
 
-    for images, targets in metric_logger.log_every(data_loader, 100, header):
-        images = list(img.to(device) for img in images)
+    for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+        images = list(image.to(device) for image in images)
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
         model_time = time.time()
-        outputs = model(images)
+        loss_dict = model(images, targets)
 
-        outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
 
-        res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         evaluator_time = time.time()
-        coco_evaluator.update(res)
+        loss_dict_reduced = utils.reduce_dict(loss_dict)
+        losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+
+        loss_value = losses_reduced.item()
+        losses.append(loss_value)
+
         evaluator_time = time.time() - evaluator_time
         metric_logger.update(model_time=model_time, evaluator_time=evaluator_time)
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
-    print("Averaged stats:", metric_logger)
-    coco_evaluator.synchronize_between_processes()
+    mean_loss = np.mean(np.array(losses))
+    print("Averaged stats:", mean_loss)
 
-    # accumulate predictions from all images
-    coco_evaluator.accumulate()
-    coco_evaluator.summarize()
-    torch.set_num_threads(n_threads)
-    return coco_evaluator
+    return mean_loss

@@ -6,6 +6,8 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import utils
 import transforms as T
 from engine import train_one_epoch, evaluate
+import time
+import os
 
 
 def get_model_instance_segmentation(num_classes):
@@ -49,9 +51,13 @@ model.eval()
 x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
 predictions = model(x)           # Returns predictions
 
-print(predictions)
-
 def main():
+    log_folder = "logs"
+    time_folder = os.path.join(log_folder, str(round(time.time())))
+    if not os.path.exists(log_folder):
+        os.mkdir(log_folder)
+    if not os.path.exists(time_folder):
+        os.mkdir(time_folder)
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -60,11 +66,6 @@ def main():
     # use our dataset and defined transformations
     dataset = InstanceSegmentationDataSet(root_dir = 'dataset/train_and_val', transforms = get_transform(train=True))
     dataset_test = InstanceSegmentationDataSet(root_dir = 'dataset/test', transforms = get_transform(train=False))
-
-    # split the dataset in train and test set
-    indices = torch.randperm(len(dataset)).tolist()
-    dataset = torch.utils.data.Subset(dataset, indices[:-50])
-    dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
@@ -92,14 +93,23 @@ def main():
 
     # let's train it for 10 epochs
     num_epochs = 10
+    min_val_loss = 9999999
 
     for epoch in range(num_epochs):
-        # train for one epoch, printing every 10 iterations
+        #train for one epoch, printing every 10 iterations
         train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
-        evaluate(model, data_loader_test, device=device)
+        val_loss = evaluate(model, data_loader_test, device=device, print_freq = 100)
+        print("Mean val loss: ", val_loss)
+
+        if val_loss < min_val_loss:
+            print("Model improved, saving parameters...")
+            min_val_loss = val_loss
+            checkpoint_path = os.path.join(time_folder, str(epoch) + ".pth")
+            torch.save(model, checkpoint_path)
+
 
     print("That's it!")
 
