@@ -35,7 +35,6 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         for obj in objects:
             class_id, x1, y1, x2, y2 = obj
             class_id = class_id + 1
-            print(class_id, mask_full.shape)
             mask_full[class_id, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
 
             class_ids.append(class_id)
