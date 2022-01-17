@@ -53,12 +53,18 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
             class_ids.append(class_id)
             bboxes.append([x1, y1, x2, y2])
         mask_full = mask_full * 255
-       
+       """
         p = 0
         for m in mask_full:
-            cv2.imwrite("test/" + str(p) + ".jpg", m)
+            mc = m.copy()
+            
             p += 1
-        
+            for b in bboxes:
+                x1, y1, x2, y2 = int(b[0]), int(b[1]), int(b[2]), int(b[3])
+                mc = cv2.rectangle(mc, (x1, y1), (x2, y2), color = 255, thickness = 2)
+            cv2.imwrite("test/" + str(p) + ".jpg", mc)
+        """
+            
         # convert everything into a torch.Tensor
         bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
         labels = torch.as_tensor(class_ids, dtype=torch.int64)
