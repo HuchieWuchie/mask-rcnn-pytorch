@@ -55,7 +55,7 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
 
             class_ids.append(class_id)
             bboxes.append([x1, y1, x2, y2])
-        mask_full = mask_full * 255
+        #mask_full = mask_full * 255
         """
         p = 0
         for m in mask_full:
