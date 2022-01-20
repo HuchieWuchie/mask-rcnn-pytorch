@@ -45,7 +45,6 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
         no_instances = objects.shape[0]
         mask_full = np.zeros((no_instances, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(np.uint8)
 
-
         class_ids = []
         bboxes = []
 
