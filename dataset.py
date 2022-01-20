@@ -6,10 +6,11 @@ import cv2
 import torchvision.transforms
 
 class InstanceSegmentationDataSet(torch.utils.data.Dataset):
-    def __init__(self, root_dir, transforms):
+    def __init__(self, root_dir, transforms, num_classes, rescale = False):
 
         self.root_dir = root_dir
         self.transforms = transforms
+        self.rescale = rescale
         self.imgs = list(sorted(os.listdir(os.path.join(root_dir, "rgb"))))
         self.masks = list(sorted(os.listdir(os.path.join(root_dir, "masks"))))
         self.objects = list(sorted(os.listdir(os.path.join(root_dir, "object_labels"))))
@@ -30,28 +31,30 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
 
         h, w = mask_full_one_channel.shape
         h_scale, w_scale = 1, 1
-        
-        if h < 1024 or w < 1024:
-            h_scale = 1024 / h
-            w_scale = 1024 / w
-            img = img.resize((1024,1024))
-            mask_full_one_channel = cv2.resize(mask_full_one_channel, (1024,1024))
 
-        mask_full = np.zeros((11, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(np.uint8)
+        if self.rescale:
+            
+            if h < 1024 or w < 1024:
+                h_scale = 1024 / h
+                w_scale = 1024 / w
+                img = img.resize((1024,1024))
+                mask_full_one_channel = cv2.resize(mask_full_one_channel, (1024,1024))
+
         objects = np.loadtxt(object_path).astype(np.int32)
         objects = np.reshape(objects, (-1, 5))
+        no_instances = objects.shape[0]
+        mask_full = np.zeros((no_instances, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(np.uint8)
+
 
         class_ids = []
         bboxes = []
 
-        for obj in objects:
+        for i, obj in enumerate(objects):
             class_id, x1, y1, x2, y2 = obj
             x1, y1, x2, y2 = int(x1 * w_scale), int(y1 * h_scale), int(x2 * w_scale), int(y2 * h_scale)
-            print(img.size, mask_full_one_channel.shape, x1, y1, x2, y2)
-            if x1 >= 1023 or y1 >= 1023 or x2 >= 1023 or y2 >= 1023:
-                print("too big: ", x1, y1, x2, y2)
             class_id = class_id + 1
-            mask_full[class_id, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
+            #mask_full[class_id, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
+            mask_full[i, y1:y2, x1:x2] = mask_full_one_channel[y1:y2, x1:x2] > 0
 
             class_ids.append(class_id)
             bboxes.append([x1, y1, x2, y2])

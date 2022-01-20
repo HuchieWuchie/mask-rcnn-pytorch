@@ -43,19 +43,19 @@ num_classes = 11
 
 # get the model using our helper function
 #model = get_model_instance_segmentation(num_classes)
-model = torch.load("2.pth")
+model = torch.load("5.pth")
 
 # move model to the right device
 model.to(device)
 
 model.eval()
 
-img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00022910.jpg"
-img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/00_00000116.jpg"
+#img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00022910.jpg"
+#img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/00_00000116.jpg"
 #img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00000876.jpg"
 #img_path = "/workspaces/maskrcnn-pytorch/dataset/val/rgb/ILSVRC2014_train_00037745.jpg"
 #img_path = "/workspaces/maskrcnn-pytorch/rgb.png"
-#img_path = "/workspaces/maskrcnn-pytorch/custom.png"
+img_path = "/workspaces/maskrcnn-pytorch/custom.png"
 img = Image.open(img_path).convert("RGB")
 img_vis = np.asarray(img).copy()
 img_vis = cv2.cvtColor(img_vis, cv2.COLOR_BGR2RGB)
@@ -65,7 +65,7 @@ predictions = model(x)[0]
 boxes, labels, scores, masks = predictions['boxes'], predictions['labels'], predictions['scores'], predictions['masks']
 
 
-idx = scores > 0.5
+idx = scores > 0.08
 boxes = boxes[idx].cpu().detach().numpy()
 labels = labels[idx] 
 scores = scores[idx]
@@ -82,7 +82,7 @@ for box, label, mask in zip(boxes, labels, masks):
     color = (0, 0, 255)
     thickness = 2
     img_vis = cv2.rectangle(img_vis, ps, pe, color, thickness)
-    img_vis[mask[0] > 0.01] = colors[label]
+    img_vis[mask[0] > 0.1] = colors[label]
     #print(mask.shape)
     #print(mask[0, y1:y2, x1:x2])
 

@@ -35,7 +35,7 @@ def get_transform(train):
     transforms.append(T.RandomHorizontalFlip(0.5))
     
     return T.Compose(transforms)
-
+"""
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 dataset = InstanceSegmentationDataSet(root_dir = 'dataset/train_and_val', transforms = get_transform(train=True))
 data_loader = torch.utils.data.DataLoader(
@@ -50,7 +50,7 @@ output = model(images,targets)   # Returns losses and detections
 model.eval()
 x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
 predictions = model(x)           # Returns predictions
-
+"""
 def main():
     log_folder = "logs"
     time_folder = os.path.join(log_folder, str(round(time.time())))
@@ -65,8 +65,8 @@ def main():
     num_classes = 11
 
     # use our dataset and defined transformations
-    dataset = InstanceSegmentationDataSet(root_dir = 'dataset/train_and_val', transforms = get_transform(train=True))
-    dataset_test = InstanceSegmentationDataSet(root_dir = 'dataset/test', transforms = get_transform(train=False))
+    dataset = InstanceSegmentationDataSet(root_dir = 'dataset/train_and_val', transforms = get_transform(train=True), num_classes = num_classes)
+    dataset_test = InstanceSegmentationDataSet(root_dir = 'dataset/test', transforms = get_transform(train=False), num_classes = num_classes)
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
