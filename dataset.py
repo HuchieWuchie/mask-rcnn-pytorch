@@ -93,3 +93,86 @@ class InstanceSegmentationDataSet(torch.utils.data.Dataset):
             img, target = self.transforms(img, target)
         #img = torchvision.transforms.Resize((1024,1024), img)
         return img, target
+
+class InstanceSegmentationDataSetAffordance(torch.utils.data.Dataset):
+    def __init__(self, root_dir, transforms, num_classes, rescale = False):
+
+        self.root_dir = root_dir
+        self.transforms = transforms
+        self.rescale = rescale
+        self.imgs = list(sorted(os.listdir(os.path.join(root_dir, "rgb"))))
+        self.masks = list(sorted(os.listdir(os.path.join(root_dir, "masks"))))
+        self.objects = list(sorted(os.listdir(os.path.join(root_dir, "object_labels"))))
+
+    def __len__(self):
+        return len(self.imgs)
+
+    def __getitem__(self,
+                    idx: int):
+        
+        img_path = os.path.join(self.root_dir, "rgb", self.imgs[idx])
+        mask_path = os.path.join(self.root_dir, "masks", self.masks[idx])
+        object_path = os.path.join(self.root_dir, "object_labels", self.objects[idx])
+
+        img = Image.open(img_path).convert("RGB")
+
+        mask_full_one_channel = np.loadtxt(mask_path).astype(np.uint8)
+
+        objects = np.loadtxt(object_path).astype(np.int32)
+        objects = np.reshape(objects, (-1, 5))
+
+        no_instances = 0
+        for i, obj in enumerate(objects):
+            _, x1, y1, x2, y2 = obj
+            m = mask_full_one_channel[y1:y2, x1:x2] > 0
+            no_instances += np.unique(m).shape[0]
+
+        mask_full = np.zeros((no_instances, mask_full_one_channel.shape[0], mask_full_one_channel.shape[1])).astype(np.uint8)
+
+        class_ids = []
+        bboxes = []
+
+        instance = 0
+        for i, obj in enumerate(objects):
+            _, x1, y1, x2, y2 = obj
+
+            m = mask_full_one_channel[y1:y2, x1:x2] > 0
+            labels = np.unique(m)
+
+            for label in labels:
+                m = np.zeros(mask_full_one_channel.shape)
+                idx = mask_full_one_channel[y1:y2, x1:x2] == label
+                m[y1:y2, x1:x2][idx] = mask_full_one_channel[y1:y2, x1:x2][idx]
+                x, y = np.where(m != 0)
+                x1_l, y1_l, x2_l, y2_l = np.min(x]), np.min(y), np.max(x), np.max(y)
+
+                mask_full[instance, y1_l:y2_l, x1_l:x2_l] = m[y1_l:y2_l, x1_l:x2_l] > 0
+                
+                class_ids.append(label)
+                bboxes.append([x1_l, y1_l, x2_l, y2_l])
+
+                instance += 1
+
+        # convert everything into a torch.Tensor
+        bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
+        labels = torch.as_tensor(class_ids, dtype=torch.int64)
+        masks = torch.as_tensor(mask_full, dtype=torch.uint8)
+        
+        image_id = torch.tensor([idx])
+        area = (bboxes[:, 3] - bboxes[:, 1]) * (bboxes[:, 2] - bboxes[:,0])
+
+        iscrowd = torch.zeros((len(class_ids),), dtype=torch.int64)
+
+        target = {}
+        target["boxes"] = bboxes
+        target["labels"] = labels
+        target["masks"] = masks
+        target["image_id"] = image_id
+        target["area"] = area
+        target["iscrowd"] = iscrowd
+
+        # Preprocessing
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+        #img = torchvision.transforms.Resize((1024,1024), img)
+        return img, target
