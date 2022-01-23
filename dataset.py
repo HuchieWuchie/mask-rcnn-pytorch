@@ -145,7 +145,12 @@ class InstanceSegmentationDataSetAffordance(torch.utils.data.Dataset):
                 x, y = np.where(ix != 0)
                 #print("x, y: ", x, y)
                 #print("np where ", np.where(ix))
-                x1_l, y1_l, x2_l, y2_l = np.min(x) + x1, np.min(y) + y1, np.max(x) + x2, np.max(y) + y2
+                try:
+                    x1_l, y1_l, x2_l, y2_l = np.min(x) + x1, np.min(y) + y1, np.max(x) + x2, np.max(y) + y2
+                except ValueError:
+                    print("x: ", x)
+                    print("y: ", y)
+                    print("ix: ", ix)
 
                 mask_full[instance, y1_l:y2_l, x1_l:x2_l] = m[y1_l:y2_l, x1_l:x2_l] > 0
                 
