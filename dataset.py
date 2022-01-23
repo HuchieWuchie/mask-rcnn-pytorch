@@ -143,6 +143,8 @@ class InstanceSegmentationDataSetAffordance(torch.utils.data.Dataset):
                 m = np.zeros(mask_full_one_channel.shape)
                 idx = mask_full_one_channel[y1:y2, x1:x2] == label
                 x, y = np.where(idx != 0)
+                print("x, y: ", x, y)
+                print("np where ", np.where(idx))
                 x1_l, y1_l, x2_l, y2_l = np.min(x) + x1, np.min(y) + y1, np.max(x) + x2, np.max(y) + y2
 
                 mask_full[instance, y1_l:y2_l, x1_l:x2_l] = m[y1_l:y2_l, x1_l:x2_l] > 0
